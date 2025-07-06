@@ -1,7 +1,33 @@
 # Event Storming
 
+## Legenda
 
-## Diagrama
+```mermaid
+flowchart LR
+    actor(("Actor")):::Actor
+    external(("ExternalSystem")):::ExternalSystem
+    aggregate{{"Aggregate"}}:::Aggregate
+    command["Command"]:::Command
+    event(["DomainEvent"]):::DomainEvent
+    policy>"Policy"]:::Policy
+
+    classDef Actor stroke:#000000, fill:#FFCDD2, color:#000000
+    classDef ExternalSystem stroke:#000000, fill:#00C853, color:#000000
+    classDef Aggregate stroke-width:1px, stroke-dasharray: 0, stroke:#000000, fill:#FFD600, color:#000000
+    classDef Command stroke:#000000, fill:#BBDEFB, color:#000000
+    classDef DomainEvent stroke:#000000, fill:#FF6D00, color:#000000
+    classDef Policy fill:#E1BEE7, stroke:#000000, color:#000000
+
+    %% Ligações para visualização
+    actor -- "Ação" --> command
+    command -- "Gera" --> event
+    event -- "Dispara" --> policy
+    policy -- "Executa" --> command
+    external -- "Integração" --> command
+    aggregate -- "Contém" --> command
+```
+
+## Diagrama Fluxo de Checkout da Loja Online
 
 ```mermaid
 ---
