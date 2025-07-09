@@ -26,7 +26,7 @@ flowchart LR
     external -- "Integração" --> command
     aggregate -- "Contém" --> command
 ```
-```
+
 
 ## Diagrama Fluxo de Checkout da Loja Online
 
