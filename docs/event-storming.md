@@ -26,6 +26,7 @@ flowchart LR
     external -- "Integração" --> command
     aggregate -- "Contém" --> command
 ```
+```
 
 ## Diagrama Fluxo de Checkout da Loja Online
 
@@ -36,125 +37,244 @@ config:
   layout: dagre
 ---
 flowchart TD
-    n1["CreateOrder"] --> n2["Order"]
-    n2 --> n3(["OrderCreated"])
-    n4["CreatePayment"] --> n5["Payment"]
-    n5 --> n6(["SuccessPaymentConfirmed"]) & n21(["PaymentCreated"]) & n48(["FailurePaymentConfirmed"])
-    n7["CreateShipping"] --> n8["Shipping"]
-    n8 --> n18(["ShippingDelivered"]) & n26(["ShippingCreated"]) & n52(["ShippingStarted"])
-    n10["DeductInventory"] --> n11["Inventory"]
-    n11 --> n12(["InventoryDeducted"]) & n31(["InventoryReserved"]) & n33(["InventoryReservationExpired"])
-    n16(("Customer")) --> n1 & n4
-    n18 --> n45["ListenShippingStatus"]
-    n19["UpdateOrderStatus"] --> n2
-    n20["ReserveInventory"] --> n11
-    n21 --> n22["ProcessPayment"] & n53["ListenPaymentStatus"]
-    n22 --> n23["PaymentGateway"]
-    n23 --> n24(["PaymentProcessed"])
-    n25["ConfirmSuccessPayment"] --> n5
-    n26 --> n27["StartDelivery"] & n45
-    n27 --> n28["DeliveryCompany"]
-    n28 --> n29(["DeliveryCompleted"]) & n50(["DeliveryStarted"])
-    n30["ConfirmShippingDelivery"] --> n8
-    n31 --> n32["CheckReservationTimeout"]
-    n32 --> n41["ExpireInventoryReservation"]
-    n33 --> n46["CancelOrderInventoryReservationExpired"]
-    n34["CancelOrder"] --> n2
-    n6 --> n37["TriggerInvoiceGeneration"] & n53
-    n12 --> n36["TriggerShippingCreation"]
-    n35["TriggerInventoryDeduction"] --> n10
-    n36 --> n7
-    n37 --> n38["CreateInvoice"]
-    n38 --> n39["Invoice"]
-    n39 --> n40(["InvoiceCreated"])
-    n40 --> n35
-    n41 --> n11
-    n24 --> n42["CheckPaymentSuccess"]
-    n42 --> n25 & n47["ConfirmFailurePayment"]
-    n3 --> n43["TriggerReserveInventory"]
-    n43 --> n20
-    n29 --> n44["ListenDeliveryStatus"]
-    n44 --> n30 & n51["ConfirmShippingStart"]
-    n45 --> n19
-    n46 --> n34
-    n47 --> n5
-    n48 --> n49["TriggerCancelOrderPaymentFailure"] & n53
-    n49 --> n34
-    n51 --> n8
-    n50 --> n44
-    n52 --> n45
-    n53 --> n19
-    n1@{ shape: rect}
-    n2@{ shape: hex}
-    n4@{ shape: rect}
-    n5@{ shape: hex}
-    n8@{ shape: hex}
-    n11@{ shape: hex}
-    n45@{ shape: card}
-    n53@{ shape: card}
-    n23@{ shape: dbl-circ}
-    n28@{ shape: dbl-circ}
-    n32@{ shape: card}
-    n46@{ shape: card}
-    n34@{ shape: rect}
-    n37@{ shape: card}
-    n36@{ shape: card}
-    n35@{ shape: card}
-    n39@{ shape: hex}
-    n42@{ shape: card}
-    n43@{ shape: card}
-    n44@{ shape: card}
-    n49@{ shape: card}
-     n1:::Sky
-     n1:::Command
-     n2:::Aggregate
-     n3:::DomainEvent
-     n4:::Command
-     n5:::Aggregate
-     n6:::DomainEvent
-     n21:::DomainEvent
-     n48:::DomainEvent
-     n7:::Command
-     n8:::Aggregate
-     n18:::DomainEvent
-     n26:::DomainEvent
-     n52:::DomainEvent
-     n10:::Command
-     n11:::Aggregate
-     n12:::DomainEvent
-     n31:::DomainEvent
-     n33:::DomainEvent
-     n16:::Rose
-     n16:::Actor
-     n45:::Policy
-     n19:::Command
-     n20:::Command
-     n22:::Command
-     n53:::Policy
-     n23:::ExternalSystem
-     n24:::DomainEvent
-     n25:::Command
-     n27:::Command
-     n28:::ExternalSystem
-     n29:::DomainEvent
-     n50:::DomainEvent
-     n30:::Command
-     n32:::Policy
-     n41:::Command
-     n46:::Policy
-     n34:::Command
-     n37:::Policy
-     n36:::Policy
-     n35:::Policy
-     n38:::Command
-     n39:::Aggregate
-     n40:::DomainEvent
-     n42:::Policy
-     n47:::Command
-     n43:::Policy
-     n44:::Policy
-     n51:::Command
-     n49:::Policy
+    %% Actors
+    customer(("Customer"))
+    paymentGW(("PaymentGateway"))
+    deliveryCompany(("DeliveryCompany"))
+    
+    %% Aggregates
+    orderAgg{{"Order"}}
+    paymentAgg{{"Payment"}}
+    shippingAgg{{"Shipping"}}
+    inventoryAgg{{"Inventory"}}
+    invoiceAgg{{"Invoice"}}
+    timeoutAgg{{"ReservationTimeout"}}
+    
+    %% Commands
+    createOrder["CreateOrder"]
+    createPayment["CreatePayment"]
+    updateOrderStatus["UpdateOrderStatus"]
+    cancelOrder["CancelOrder"]
+    confirmPayment["ConfirmPayment"]
+    rejectPayment["RejectPayment"]
+    createShipment["CreateShipment"]
+    processDeliveryNotification["ProcessDeliveryNotification"]
+    reserveInventory["ReserveInventory"]
+    deductInventory["DeductInventory"]
+    expireInventoryReservation["ExpireInventoryReservation"]
+    releaseInventory["ReleaseInventory"]
+    createInvoice["CreateInvoice"]
+    scheduleTimeout["ScheduleTimeout"]
+    cancelTimeout["CancelTimeout"]
+    callDeliveryAPI["CallDeliveryAPI"]
+    callPaymentAPI["CallPaymentAPI"]
+    processPaymentCallback["ProcessPaymentCallback"]
+    
+    %% Domain Events
+    orderCreated(["OrderCreated"])
+    orderUpdated(["OrderUpdated"])
+    orderCancelled(["OrderCancelled"])
+    paymentCreated(["PaymentCreated"])
+    paymentProcessed(["PaymentProcessed"])
+    paymentConfirmed(["PaymentConfirmed"])
+    paymentFailed(["PaymentFailed"])
+    shipmentCreated(["ShipmentCreated"])
+    deliveryCompleted(["DeliveryCompleted"])
+    inventoryReserved(["InventoryReserved"])
+    inventoryDeducted(["InventoryDeducted"])
+    inventoryReservationExpired(["InventoryReservationExpired"])
+    inventoryReservationReleased(["InventoryReservationReleased"])
+    invoiceCreated(["InvoiceCreated"])
+    timeoutScheduled(["TimeoutScheduled"])
+    timeoutExpired(["TimeoutExpired"])
+    timeoutCancelled(["TimeoutCancelled"])
+    
+    %% Policies
+    triggerReserveInventory>"TriggerReserveInventory"]
+    handleReservationTimeout>"HandleReservationTimeout"]
+    listenPaymentStatus>"ListenPaymentStatus"]
+    checkPaymentResult>"CheckPaymentResult"]
+    triggerInvoiceGeneration>"TriggerInvoiceGeneration"]
+    triggerInventoryDeduction>"TriggerInventoryDeduction"]
+    triggerShipmentCreation>"TriggerShipmentCreation"]
+    handleDeliveryEvents>"HandleDeliveryEvents"]
+    handlePaymentFailure>"HandlePaymentFailure"]
+    handleInventoryReservationExpiry>"HandleInventoryReservationExpiry"]
+    handleOrderCancellationOnReservationExpiry>"HandleOrderCancellationOnReservationExpiry"]
+    ensureOrderConsistency>"EnsureOrderConsistency"]
+    cancelTimeoutOnPayment>"CancelTimeoutOnPayment"]
+    integrateWithDeliveryCompany>"IntegrateWithDeliveryCompany"]
+    integrateWithPaymentGateway>"IntegrateWithPaymentGateway"]
+    
+    %% Main Flow - Happy Path
+    customer --> createOrder
+    createOrder --> orderAgg
+    orderAgg --> orderCreated
+    
+    orderCreated --> triggerReserveInventory
+    triggerReserveInventory --> reserveInventory
+    reserveInventory --> inventoryAgg
+    inventoryAgg --> inventoryReserved
+    
+    inventoryReserved --> handleReservationTimeout
+    handleReservationTimeout --> scheduleTimeout
+    scheduleTimeout --> timeoutAgg
+    timeoutAgg --> timeoutScheduled
+    
+    customer --> createPayment
+    createPayment --> paymentAgg
+    paymentAgg --> paymentCreated
+    
+    paymentCreated --> integrateWithPaymentGateway
+    integrateWithPaymentGateway --> callPaymentAPI
+    callPaymentAPI --> paymentGW
+    paymentGW --> processPaymentCallback
+    
+    processPaymentCallback --> paymentAgg
+    paymentAgg --> paymentProcessed
+    
+    paymentProcessed --> checkPaymentResult
+    checkPaymentResult --> confirmPayment
+    checkPaymentResult --> rejectPayment
+    
+    confirmPayment --> paymentAgg
+    paymentAgg --> paymentConfirmed
+    
+    %% Cancelar timeout quando pagamento confirmado
+    paymentConfirmed --> cancelTimeoutOnPayment
+    cancelTimeoutOnPayment --> cancelTimeout
+    cancelTimeout --> timeoutAgg
+    timeoutAgg --> timeoutCancelled
+    
+    paymentConfirmed --> triggerInvoiceGeneration
+    triggerInvoiceGeneration --> createInvoice
+    createInvoice --> invoiceAgg
+    invoiceAgg --> invoiceCreated
+    
+    invoiceCreated --> triggerInventoryDeduction
+    triggerInventoryDeduction --> deductInventory
+    deductInventory --> inventoryAgg
+    inventoryAgg --> inventoryDeducted
+    
+    inventoryDeducted --> triggerShipmentCreation
+    triggerShipmentCreation --> createShipment
+    createShipment --> shippingAgg
+    shippingAgg --> shipmentCreated
+    
+    shipmentCreated --> integrateWithDeliveryCompany
+    integrateWithDeliveryCompany --> callDeliveryAPI
+    callDeliveryAPI --> deliveryCompany
+    deliveryCompany --> processDeliveryNotification
+    
+    processDeliveryNotification --> shippingAgg
+    shippingAgg --> deliveryCompleted
+    
+    shipmentCreated --> handleDeliveryEvents
+    deliveryCompleted --> handleDeliveryEvents
+    handleDeliveryEvents --> updateOrderStatus
+    
+    updateOrderStatus --> orderAgg
+    orderAgg --> orderUpdated
+    
+    %% Error Handling & Compensations
+    rejectPayment --> paymentAgg
+    paymentAgg --> paymentFailed
+    
+    paymentFailed --> handlePaymentFailure
+    handlePaymentFailure --> cancelOrder
+    handlePaymentFailure --> releaseInventory
+    
+    %% Timeout expiry flow
+    timeoutAgg --> timeoutExpired
+    timeoutExpired --> handleInventoryReservationExpiry
+    handleInventoryReservationExpiry --> expireInventoryReservation
+    expireInventoryReservation --> inventoryAgg
+    inventoryAgg --> inventoryReservationExpired
+    
+    inventoryReservationExpired --> handleOrderCancellationOnReservationExpiry
+    handleOrderCancellationOnReservationExpiry --> cancelOrder
+    
+    cancelOrder --> orderAgg
+    orderAgg --> orderCancelled
+    
+    %% Release inventory flow
+    releaseInventory --> inventoryAgg
+    inventoryAgg --> inventoryReservationReleased
+    
+    orderCancelled --> ensureOrderConsistency
+    paymentFailed --> ensureOrderConsistency
+    inventoryReservationReleased --> ensureOrderConsistency
+    
+    %% Payment Status Monitoring
+    paymentConfirmed --> listenPaymentStatus
+    paymentFailed --> listenPaymentStatus
+    listenPaymentStatus --> updateOrderStatus
+    
+    %% Styling
+    customer:::Actor
+    paymentGW:::ExternalSystem
+    deliveryCompany:::ExternalSystem
+    
+    orderAgg:::Aggregate
+    paymentAgg:::Aggregate
+    shippingAgg:::Aggregate
+    inventoryAgg:::Aggregate
+    invoiceAgg:::Aggregate
+    timeoutAgg:::Aggregate
+    
+    createOrder:::Command
+    createPayment:::Command
+    updateOrderStatus:::Command
+    cancelOrder:::Command
+    confirmPayment:::Command
+    rejectPayment:::Command
+    createShipment:::Command
+    processDeliveryNotification:::Command
+    reserveInventory:::Command
+    deductInventory:::Command
+    expireInventoryReservation:::Command
+    releaseInventory:::Command
+    createInvoice:::Command
+    scheduleTimeout:::Command
+    cancelTimeout:::Command
+    callDeliveryAPI:::Command
+    callPaymentAPI:::Command
+    processPaymentCallback:::Command
+    
+    orderCreated:::DomainEvent
+    orderUpdated:::DomainEvent
+    orderCancelled:::DomainEvent
+    paymentCreated:::DomainEvent
+    paymentProcessed:::DomainEvent
+    paymentConfirmed:::DomainEvent
+    paymentFailed:::DomainEvent
+    shipmentCreated:::DomainEvent
+    deliveryCompleted:::DomainEvent
+    inventoryReserved:::DomainEvent
+    inventoryDeducted:::DomainEvent
+    inventoryReservationExpired:::DomainEvent
+    inventoryReservationReleased:::DomainEvent
+    invoiceCreated:::DomainEvent
+    timeoutScheduled:::DomainEvent
+    timeoutExpired:::DomainEvent
+    timeoutCancelled:::DomainEvent
+    
+    triggerReserveInventory:::Policy
+    handleReservationTimeout:::Policy
+    listenPaymentStatus:::Policy
+    checkPaymentResult:::Policy
+    triggerInvoiceGeneration:::Policy
+    triggerInventoryDeduction:::Policy
+    triggerShipmentCreation:::Policy
+    handleDeliveryEvents:::Policy
+    handlePaymentFailure:::Policy
+    handleInventoryReservationExpiry:::Policy
+    handleOrderCancellationOnReservationExpiry:::Policy
+    ensureOrderConsistency:::Policy
+    cancelTimeoutOnPayment:::Policy
+    integrateWithDeliveryCompany:::Policy
+    integrateWithPaymentGateway:::Policy
+    
     classDef Actor stroke:#000000, fill:#FFCDD2, color:#000000
     classDef ExternalSystem stroke:#000000, fill:#00C853, color:#000000
     classDef Aggregate stroke-width:1px, stroke-dasharray: 0, stroke:#000000, fill:#FFD600, color:#000000
@@ -169,318 +289,517 @@ flowchart TD
 
 ### Customer
 - **Tipo:** Humano
-- **Descrição:** Usuário da loja que realiza pedidos e pagamentos.
+- **Descrição:** Cliente da loja Bazarium que realiza pedidos e pagamentos.
 - **Principais Interações:** CreateOrder, CreatePayment
 
 ### PaymentGateway
 - **Tipo:** Sistema Externo
-- **Descrição:** Sistema de terceiros responsável pelo processamento de pagamentos.
-- **Principais Interações:** Recebe ProcessPayment, retorna PaymentProcessed
+- **Descrição:** Gateway de pagamento externo (ex: Stripe, PayPal) responsável pelo processamento de transações financeiras.
+- **Principais Interações:** Recebe CallPaymentAPI, retorna callback via ProcessPaymentCallback
 
 ### DeliveryCompany
 - **Tipo:** Sistema Externo
-- **Descrição:** Empresa responsável pela entrega dos pedidos.
-- **Principais Interações:** Recebe StartDelivery, retorna DeliveryCompleted
+- **Descrição:** Empresa de logística terceirizada responsável pela coleta e entrega dos produtos.
+- **Principais Interações:** Recebe CallDeliveryAPI, notifica status via ProcessDeliveryNotification
 
 ## Aggregates
 
 
 ### Order
-- **Descrição:** Representa o pedido realizado pelo cliente.
-- **Entidades e Objetos de Valor:** OrderItem, CustomerInfo
+- **Descrição:** Representa o pedido realizado pelo cliente, controlando todo o ciclo de vida desde criação até finalização.
+- **Entidades e Objetos de Valor:** OrderItem, CustomerInfo, OrderStatus, OrderId
 - **Comandos Manipulados:** CreateOrder, UpdateOrderStatus, CancelOrder
-- **Eventos Gerados:** OrderCreated
-- **Regras de Negócio:** Validação de itens, status do pedido
+- **Eventos Gerados:** OrderCreated, OrderUpdated, OrderCancelled
+- **Estados Possíveis:** Created, InventoryReserved, PaymentPending, PaymentConfirmed, InvoiceGenerated, InventoryDeducted, ShippingRequested, InTransit, Delivered, Completed, Cancelled
+- **Regras de Negócio:** 
+  - Validação de itens e quantidades
+  - Controle de transições de estado
+  - Verificação de elegibilidade para cancelamento
+  - Manutenção de histórico de mudanças
 
 ### Payment
-- **Descrição:** Gerencia o pagamento de um pedido.
-- **Entidades e Objetos de Valor:** PaymentDetails
-- **Comandos Manipulados:** CreatePayment, ConfirmSuccessPayment, ConfirmFailurePayment
-- **Eventos Gerados:** PaymentCreated, SuccessPaymentConfirmed, FailurePaymentConfirmed
-- **Regras de Negócio:** Validação de status de pagamento
+- **Descrição:** Gerencia o processo de pagamento de um pedido, incluindo integração com gateways externos.
+- **Entidades e Objetos de Valor:** PaymentDetails, PaymentMethod, PaymentStatus, TransactionId
+- **Comandos Manipulados:** CreatePayment, ProcessPaymentCallback, ConfirmPayment, RejectPayment
+- **Eventos Gerados:** PaymentCreated, PaymentProcessed, PaymentConfirmed, PaymentFailed
+- **Estados Possíveis:** Created, Processing, Confirmed, Failed, TimedOut
+- **Regras de Negócio:** 
+  - Validação de dados de pagamento
+  - Controle de timeout de transações
+  - Verificação de integridade com callbacks
+  - Prevenção de double processing
 
 ### Shipping
-- **Descrição:** Gerencia o processo de entrega do pedido.
-- **Entidades e Objetos de Valor:** ShippingAddress
-- **Comandos Manipulados:** CreateShipping, ConfirmShippingDelivery, StartDelivery, ConfirmShippingStart
-- **Eventos Gerados:** ShippingCreated, ShippingDelivered, ShippingStarted, DeliveryCompleted, DeliveryStarted
-- **Regras de Negócio:** Controle de status de entrega
+- **Descrição:** Gerencia o processo de entrega do pedido através de integração com transportadoras.
+- **Entidades e Objetos de Valor:** ShippingAddress, TrackingCode, DeliveryStatus, ShipmentDetails
+- **Comandos Manipulados:** CreateShipment, ProcessDeliveryNotification
+- **Eventos Gerados:** ShipmentCreated, DeliveryCompleted
+- **Estados Possíveis:** Created, PickupRequested, InTransit, OutForDelivery, Delivered, Failed
+- **Regras de Negócio:** 
+  - Validação de endereço de entrega
+  - Integração com múltiplas transportadoras
+  - Tratamento de falhas de entrega
+  - Rastreamento de status
 
 ### Inventory
-- **Descrição:** Gerencia o estoque dos produtos.
-- **Entidades e Objetos de Valor:** InventoryItem
-- **Comandos Manipulados:** DeductInventory, ReserveInventory, ExpireInventoryReservation
-- **Eventos Gerados:** InventoryDeducted, InventoryReserved, InventoryReservationExpired
-- **Regras de Negócio:** Reserva e dedução de estoque
+- **Descrição:** Gerencia o estoque dos produtos, incluindo reservas temporárias e deduções definitivas.
+- **Entidades e Objetos de Valor:** InventoryItem, ProductId, QuantityAvailable, QuantityReserved
+- **Comandos Manipulados:** ReserveInventory, DeductInventory, ExpireInventoryReservation, ReleaseInventory
+- **Eventos Gerados:** InventoryReserved, InventoryDeducted, InventoryReservationExpired, InventoryReservationReleased
+- **Regras de Negócio:** 
+  - Controle de concorrência para reservas
+  - Prevenção de overselling
+  - Gestão de timeouts de reserva
+  - Auditoria de movimentações
 
 ### Invoice
-- **Descrição:** Representa a fatura gerada após o pagamento.
-- **Entidades e Objetos de Valor:** InvoiceDetails
+- **Descrição:** Representa a fatura fiscal gerada após confirmação do pagamento.
+- **Entidades e Objetos de Valor:** InvoiceDetails, TaxInformation, InvoiceNumber, IssueDate
 - **Comandos Manipulados:** CreateInvoice
 - **Eventos Gerados:** InvoiceCreated
-- **Regras de Negócio:** Geração de fatura após pagamento confirmado
+- **Regras de Negócio:** 
+  - Geração automática após pagamento confirmado
+  - Conformidade com regulamentações fiscais
+  - Numeração sequencial obrigatória
+  - Informações tributárias corretas
+
+### ReservationTimeout
+- **Descrição:** Gerencia timeouts de reservas de estoque para evitar bloqueios indefinidos.
+- **Entidades e Objetos de Valor:** TimeoutSchedule, ReservationId, ExpirationTime
+- **Comandos Manipulados:** ScheduleTimeout, CancelTimeout
+- **Eventos Gerados:** TimeoutScheduled, TimeoutExpired, TimeoutCancelled
+- **Regras de Negócio:** 
+  - Timeout padrão de 15 minutos para reservas
+  - Cancelamento automático quando pagamento confirmado
+  - Limpeza de timeouts expirados
 
 ## Commands
 
 
 ### CreateOrder
-- **Descrição:** Cria um novo pedido para o cliente.
+- **Descrição:** Cria um novo pedido para o cliente com validação de produtos e quantidades.
 - **Agregado Alvo:** Order
 - **Atores Possíveis:** Customer
 - **Eventos Resultantes:** OrderCreated
-- **Validações/Regras:** Itens válidos, estoque disponível
+- **Validações/Regras:** Produtos existem no catálogo, quantidades válidas, dados do cliente completos
 
 ### CreatePayment
-- **Descrição:** Inicia o processo de pagamento de um pedido.
+- **Descrição:** Inicia o processo de pagamento de um pedido específico.
 - **Agregado Alvo:** Payment
 - **Atores Possíveis:** Customer
 - **Eventos Resultantes:** PaymentCreated
-- **Validações/Regras:** Pedido existente, valor correto
+- **Validações/Regras:** Pedido válido e não pago, método de pagamento aceito, valor correto
 
-### CreateShipping
-- **Descrição:** Inicia o processo de entrega do pedido.
+### CreateShipment
+- **Descrição:** Cria um shipment solicitando coleta à transportadora.
 - **Agregado Alvo:** Shipping
 - **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** ShippingCreated
-- **Validações/Regras:** Pedido pago
+- **Eventos Resultantes:** ShipmentCreated
+- **Validações/Regras:** Estoque deduzido, fatura gerada, endereço válido
 
 ### DeductInventory
-- **Descrição:** Deduz o estoque dos itens do pedido.
+- **Descrição:** Deduz estoque definitivamente após confirmação de pagamento.
 - **Agregado Alvo:** Inventory
 - **Atores Possíveis:** Sistema (Policy)
 - **Eventos Resultantes:** InventoryDeducted
-- **Validações/Regras:** Estoque suficiente
+- **Validações/Regras:** Estoque reservado existe, fatura gerada
 
 ### UpdateOrderStatus
-- **Descrição:** Atualiza o status do pedido.
+- **Descrição:** Atualiza o status do pedido conforme evolução do processo.
 - **Agregado Alvo:** Order
 - **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** -
-- **Validações/Regras:** Status permitido
+- **Eventos Resultantes:** OrderUpdated
+- **Validações/Regras:** Transição de status válida, pedido existe
 
 ### ReserveInventory
-- **Descrição:** Reserva o estoque para um pedido.
+- **Descrição:** Reserva estoque temporariamente para um pedido.
 - **Agregado Alvo:** Inventory
 - **Atores Possíveis:** Sistema (Policy)
 - **Eventos Resultantes:** InventoryReserved
-- **Validações/Regras:** Estoque disponível
+- **Validações/Regras:** Estoque disponível suficiente, produtos válidos
 
-### ProcessPayment
-- **Descrição:** Processa o pagamento via gateway externo.
+### ProcessPaymentCallback
+- **Descrição:** Processa callback de pagamento recebido do gateway.
 - **Agregado Alvo:** Payment
-- **Atores Possíveis:** Sistema (Policy)
+- **Atores Possíveis:** Sistema (Webhook Handler)
 - **Eventos Resultantes:** PaymentProcessed
-- **Validações/Regras:** Dados válidos
+- **Validações/Regras:** Callback autêntico, formato válido, pagamento em andamento
 
-### ConfirmSuccessPayment
-- **Descrição:** Confirma o pagamento bem-sucedido.
+### ConfirmPayment
+- **Descrição:** Confirma o pagamento como bem-sucedido após validação do gateway.
 - **Agregado Alvo:** Payment
 - **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** SuccessPaymentConfirmed
-- **Validações/Regras:** Pagamento processado
+- **Eventos Resultantes:** PaymentConfirmed
+- **Validações/Regras:** Pagamento foi processado com sucesso pelo gateway
 
-### StartDelivery
-- **Descrição:** Inicia a entrega do pedido.
-- **Agregado Alvo:** Shipping
+### RejectPayment
+- **Descrição:** Rejeita o pagamento após falha detectada pelo gateway.
+- **Agregado Alvo:** Payment
 - **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** DeliveryStarted
-- **Validações/Regras:** Pedido pronto para envio
+- **Eventos Resultantes:** PaymentFailed
+- **Validações/Regras:** Pagamento foi processado e resultado indicou falha
 
-### ConfirmShippingDelivery
-- **Descrição:** Confirma a entrega do pedido ao cliente.
+### ProcessDeliveryNotification
+- **Descrição:** Processa notificação de status de entrega da transportadora.
 - **Agregado Alvo:** Shipping
-- **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** ShippingDelivered
-- **Validações/Regras:** Entrega realizada
+- **Atores Possíveis:** Sistema (Webhook Handler)
+- **Eventos Resultantes:** DeliveryCompleted
+- **Validações/Regras:** Notificação autêntica, formato válido, shipment existe
 
 ### ExpireInventoryReservation
-- **Descrição:** Expira a reserva de estoque não utilizada.
+- **Descrição:** Expira uma reserva de estoque não utilizada.
 - **Agregado Alvo:** Inventory
 - **Atores Possíveis:** Sistema (Policy)
 - **Eventos Resultantes:** InventoryReservationExpired
-- **Validações/Regras:** Tempo de reserva expirado
+- **Validações/Regras:** Timeout expirou, reserva ainda ativa
+
+### ReleaseInventory
+- **Descrição:** Libera uma reserva de estoque manualmente.
+- **Agregado Alvo:** Inventory
+- **Atores Possíveis:** Sistema (Policy)
+- **Eventos Resultantes:** InventoryReservationReleased
+- **Validações/Regras:** Reserva existe e está ativa
 
 ### CancelOrder
-- **Descrição:** Cancela o pedido do cliente.
+- **Descrição:** Cancela o pedido do cliente por solicitação ou falha no processo.
 - **Agregado Alvo:** Order
 - **Atores Possíveis:** Customer, Sistema (Policy)
-- **Eventos Resultantes:** -
-- **Validações/Regras:** Pedido pode ser cancelado
+- **Eventos Resultantes:** OrderCancelled
+- **Validações/Regras:** Pedido pode ser cancelado, não está em processamento de entrega
 
 ### CreateInvoice
-- **Descrição:** Gera a fatura do pedido.
+- **Descrição:** Gera a fatura fiscal do pedido.
 - **Agregado Alvo:** Invoice
 - **Atores Possíveis:** Sistema (Policy)
 - **Eventos Resultantes:** InvoiceCreated
-- **Validações/Regras:** Pagamento confirmado
+- **Validações/Regras:** Pagamento confirmado, dados fiscais válidos
 
-### ConfirmFailurePayment
-- **Descrição:** Confirma o insucesso do pagamento.
+### ScheduleTimeout
+- **Descrição:** Agenda o timeout de uma reserva de estoque.
+- **Agregado Alvo:** ReservationTimeout
+- **Atores Possíveis:** Sistema (Policy)
+- **Eventos Resultantes:** TimeoutScheduled
+- **Validações/Regras:** Reserva ativa, timeout não existe
+
+### CancelTimeout
+- **Descrição:** Cancela um timeout agendado.
+- **Agregado Alvo:** ReservationTimeout
+- **Atores Possíveis:** Sistema (Policy)
+- **Eventos Resultantes:** TimeoutCancelled
+- **Validações/Regras:** Timeout existe e não expirou
+
+### CallDeliveryAPI
+- **Descrição:** Integração externa - solicita coleta à transportadora.
+- **Agregado Alvo:** Nenhum (Comando de Integração)
+- **Atores Possíveis:** Sistema (Policy)
+- **Eventos Resultantes:** Nenhum direto (resposta via ProcessDeliveryNotification)
+- **Validações/Regras:** Dados do shipment válidos, API disponível
+
+### CallPaymentAPI
+- **Descrição:** Integração externa - processa pagamento no gateway.
+- **Agregado Alvo:** Nenhum (Comando de Integração)
+- **Atores Possíveis:** Sistema (Policy)
+- **Eventos Resultantes:** Nenhum direto (resposta via ProcessPaymentCallback)
+- **Validações/Regras:** Dados de pagamento válidos, gateway disponível
+
+### ProcessPaymentCallback
+- **Descrição:** Processa callback de pagamento recebido do gateway.
 - **Agregado Alvo:** Payment
-- **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** FailurePaymentConfirmed
-- **Validações/Regras:** Pagamento processado
-
-### ConfirmShippingStart
-- **Descrição:** Confirma o início da entrega.
-- **Agregado Alvo:** Shipping
-- **Atores Possíveis:** Sistema (Policy)
-- **Eventos Resultantes:** ShippingStarted
-- **Validações/Regras:** Entrega iniciada
-
+- **Atores Possíveis:** Sistema (Webhook Handler)
+- **Eventos Resultantes:** PaymentProcessed
+- **Validações/Regras:** Callback autêntico, formato válido, transação existe
 ## Domain Events
 
 
 ### OrderCreated
-- **Descrição:** Um novo pedido foi criado.
+- **Descrição:** Um novo pedido foi criado no sistema.
 - **Agregado de Origem:** Order
-- **Consequências:** Reserva de estoque, início do pagamento
-- **Importância para o Negócio:** Inicia o fluxo de compra
+- **Consequências:** Dispara reserva de estoque
+- **Importância para o Negócio:** Inicia todo o fluxo de processamento de pedido
 
-### SuccessPaymentConfirmed
-- **Descrição:** O pagamento foi confirmado com sucesso.
-- **Agregado de Origem:** Payment
-- **Consequências:** Geração de fatura, início do envio
-- **Importância para o Negócio:** Permite liberar o pedido
+### OrderUpdated
+- **Descrição:** O status ou informações do pedido foram atualizados.
+- **Agregado de Origem:** Order
+- **Consequências:** Notificação ao cliente, atualização de dashboards
+- **Importância para o Negócio:** Transparência e rastreabilidade do processo
+
+### OrderCancelled
+- **Descrição:** Um pedido foi cancelado pelo cliente ou sistema.
+- **Agregado de Origem:** Order
+- **Consequências:** Liberação de reservas, compensações necessárias
+- **Importância para o Negócio:** Controle de fluxo, otimização de recursos
 
 ### PaymentCreated
-- **Descrição:** O pagamento foi iniciado.
+- **Descrição:** O processo de pagamento foi iniciado.
 - **Agregado de Origem:** Payment
-- **Consequências:** Processamento do pagamento
-- **Importância para o Negócio:** Inicia a transação financeira
-
-### FailurePaymentConfirmed
-- **Descrição:** O pagamento falhou.
-- **Agregado de Origem:** Payment
-- **Consequências:** Cancelamento do pedido
-- **Importância para o Negócio:** Garante consistência financeira
-
-### ShippingDelivered
-- **Descrição:** O pedido foi entregue ao cliente.
-- **Agregado de Origem:** Shipping
-- **Consequências:** Finaliza o fluxo de entrega
-- **Importância para o Negócio:** Satisfação do cliente
-
-### ShippingCreated
-- **Descrição:** O envio foi criado.
-- **Agregado de Origem:** Shipping
-- **Consequências:** Início da entrega
-- **Importância para o Negócio:** Logística
-
-### ShippingStarted
-- **Descrição:** A entrega foi iniciada.
-- **Agregado de Origem:** Shipping
-- **Consequências:** Monitoramento da entrega
-- **Importância para o Negócio:** Controle logístico
-
-### InventoryDeducted
-- **Descrição:** O estoque foi deduzido.
-- **Agregado de Origem:** Inventory
-- **Consequências:** Atualização de estoque
-- **Importância para o Negócio:** Controle de inventário
-
-### InventoryReserved
-- **Descrição:** O estoque foi reservado para o pedido.
-- **Agregado de Origem:** Inventory
-- **Consequências:** Garante disponibilidade
-- **Importância para o Negócio:** Evita overbooking
-
-### InventoryReservationExpired
-- **Descrição:** A reserva de estoque expirou.
-- **Agregado de Origem:** Inventory
-- **Consequências:** Liberação de estoque
-- **Importância para o Negócio:** Otimização de inventário
+- **Consequências:** Integração com gateway de pagamento
+- **Importância para o Negócio:** Início da transação financeira
 
 ### PaymentProcessed
-- **Descrição:** O pagamento foi processado pelo gateway.
+- **Descrição:** O pagamento foi processado pelo gateway (sucesso ou falha).
 - **Agregado de Origem:** Payment
-- **Consequências:** Confirmação de sucesso ou falha
-- **Importância para o Negócio:** Integração financeira
+- **Consequências:** Decisão de confirmar ou rejeitar pagamento
+- **Importância para o Negócio:** Resultado da transação financeira
+
+### PaymentConfirmed
+- **Descrição:** O pagamento foi confirmado com sucesso.
+- **Agregado de Origem:** Payment
+- **Consequências:** Geração de fatura, dedução de estoque, cancelamento de timeout
+- **Importância para o Negócio:** Libera o pedido para fulfillment
+
+### PaymentFailed
+- **Descrição:** O pagamento falhou durante o processamento.
+- **Agregado de Origem:** Payment
+- **Consequências:** Cancelamento do pedido, liberação de reservas
+- **Importância para o Negócio:** Prevenção de processos sem pagamento
+
+### ShipmentCreated
+- **Descrição:** Um shipment foi criado e entrega solicitada.
+- **Agregado de Origem:** Shipping
+- **Consequências:** Integração com transportadora, monitoramento de entrega
+- **Importância para o Negócio:** Início do processo logístico
 
 ### DeliveryCompleted
-- **Descrição:** A entrega foi concluída.
+- **Descrição:** A entrega foi concluída com sucesso.
 - **Agregado de Origem:** Shipping
-- **Consequências:** Finalização do pedido
-- **Importância para o Negócio:** Satisfação do cliente
+- **Consequências:** Finalização do pedido, atualização de status
+- **Importância para o Negócio:** Conclusão da experiência do cliente
 
-### DeliveryStarted
-- **Descrição:** A entrega foi iniciada pela transportadora.
-- **Agregado de Origem:** Shipping
-- **Consequências:** Rastreamento
-- **Importância para o Negócio:** Logística
+### InventoryReserved
+- **Descrição:** Estoque foi reservado temporariamente para o pedido.
+- **Agregado de Origem:** Inventory
+- **Consequências:** Agendamento de timeout, proteção contra overselling
+- **Importância para o Negócio:** Garante disponibilidade durante pagamento
+
+### InventoryDeducted
+- **Descrição:** Estoque foi deduzido definitivamente.
+- **Agregado de Origem:** Inventory
+- **Consequências:** Criação de shipment, atualização de disponibilidade
+- **Importância para o Negócio:** Confirmação da separação física
+
+### InventoryReservationExpired
+- **Descrição:** Uma reserva de estoque expirou por timeout.
+- **Agregado de Origem:** Inventory
+- **Consequências:** Cancelamento automático do pedido
+- **Importância para o Negócio:** Liberação de recursos não utilizados
+
+### InventoryReservationReleased
+- **Descrição:** Uma reserva de estoque foi liberada.
+- **Agregado de Origem:** Inventory
+- **Consequências:** Disponibilização para outros pedidos
+- **Importância para o Negócio:** Otimização do uso de estoque
 
 ### InvoiceCreated
-- **Descrição:** A fatura foi gerada.
+- **Descrição:** A fatura fiscal foi gerada.
 - **Agregado de Origem:** Invoice
-- **Consequências:** Envio ao cliente
-- **Importância para o Negócio:** Obrigações fiscais
+- **Consequências:** Dedução de estoque, envio ao cliente
+- **Importância para o Negócio:** Cumprimento de obrigações fiscais
+
+### TimeoutScheduled
+- **Descrição:** Um timeout de reserva foi agendado.
+- **Agregado de Origem:** ReservationTimeout
+- **Consequências:** Monitoramento automático de prazo
+- **Importância para o Negócio:** Prevenção de bloqueios indefinidos
+
+### TimeoutExpired
+- **Descrição:** Um timeout de reserva expirou.
+- **Agregado de Origem:** ReservationTimeout
+- **Consequências:** Expiração da reserva correspondente
+- **Importância para o Negócio:** Liberação automática de recursos
+
+### TimeoutCancelled
+- **Descrição:** Um timeout foi cancelado antes de expirar.
+- **Agregado de Origem:** ReservationTimeout
+- **Consequências:** Manutenção da reserva ativa
+- **Importância para o Negócio:** Controle de fluxo adequado
 
 ## Policies
 
 
-### ListenShippingStatus
-- **Descrição:** Monitora o status da entrega para atualizar o pedido.
-- **Evento(s) de Disparo:** ShippingDelivered, DeliveryCompleted
-- **Ações Executadas:** UpdateOrderStatus
-- **Observações:** Coreografia
-
-### ListenPaymentStatus
-- **Descrição:** Monitora o status do pagamento para atualizar o pedido.
-- **Evento(s) de Disparo:** SuccessPaymentConfirmed, FailurePaymentConfirmed
-- **Ações Executadas:** UpdateOrderStatus, CancelOrder
-- **Observações:** Coreografia
-
-### TriggerInvoiceGeneration
-- **Descrição:** Gera a fatura após pagamento confirmado.
-- **Evento(s) de Disparo:** SuccessPaymentConfirmed
-- **Ações Executadas:** CreateInvoice
-- **Observações:** Coreografia
-
-### TriggerShippingCreation
-- **Descrição:** Cria o envio após estoque deduzido.
-- **Evento(s) de Disparo:** InventoryDeducted
-- **Ações Executadas:** CreateShipping
-- **Observações:** Coreografia
-
-### TriggerInventoryDeduction
-- **Descrição:** Deduz o estoque após a criação da fatura.
-- **Evento(s) de Disparo:** InvoiceCreated
-- **Ações Executadas:** DeductInventory
-- **Observações:** Coreografia
-
-### CheckReservationTimeout
-- **Descrição:** Verifica se a reserva de estoque expirou.
-- **Evento(s) de Disparo:** InventoryReserved
-- **Ações Executadas:** ExpireInventoryReservation
-- **Observações:** Coreografia
-
-### CancelOrderInventoryReservationExpired
-- **Descrição:** Cancela o pedido se a reserva de estoque expirar.
-- **Evento(s) de Disparo:** InventoryReservationExpired
-- **Ações Executadas:** CancelOrder
-- **Observações:** Coreografia
-
 ### TriggerReserveInventory
-- **Descrição:** Reserva o estoque após a criação do pedido.
+- **Descrição:** Reserva estoque automaticamente após criação do pedido.
 - **Evento(s) de Disparo:** OrderCreated
 - **Ações Executadas:** ReserveInventory
-- **Observações:** Coreografia
+- **Regras de Negócio:** Verificar disponibilidade antes de reservar
 
-### ListenDeliveryStatus
-- **Descrição:** Monitora o status da entrega para confirmar a entrega ao cliente.
-- **Evento(s) de Disparo:** DeliveryCompleted, DeliveryStarted
-- **Ações Executadas:** ConfirmShippingDelivery, ConfirmShippingStart
-- **Observações:** Coreografia
+### HandleReservationTimeout
+- **Descrição:** Agenda timeout para reservas de estoque.
+- **Evento(s) de Disparo:** InventoryReserved
+- **Ações Executadas:** ScheduleTimeout
+- **Regras de Negócio:** Timeout padrão de 15 minutos
 
-### TriggerCancelOrderPaymentFailure
-- **Descrição:** Cancela o pedido após falha no pagamento.
-- **Evento(s) de Disparo:** FailurePaymentConfirmed
-- **Ações Executadas:** CancelOrder
-- **Observações:** Coreografia
+### IntegrateWithPaymentGateway
+- **Descrição:** Integra com gateway após criação de pagamento.
+- **Evento(s) de Disparo:** PaymentCreated
+- **Ações Executadas:** CallPaymentAPI
+- **Regras de Negócio:** Anti-corruption layer para integração externa
 
-### CheckPaymentSuccess
-- **Descrição:** Verifica o sucesso do pagamento após processamento.
+### CheckPaymentResult
+- **Descrição:** Avalia resultado do processamento no gateway.
 - **Evento(s) de Disparo:** PaymentProcessed
-- **Ações Executadas:** ConfirmSuccessPayment, ConfirmFailurePayment
-- **Observações:** Coreografia
+- **Ações Executadas:** ConfirmPayment ou RejectPayment
+- **Regras de Negócio:** Decisão baseada no status retornado pelo gateway
+
+### CancelTimeoutOnPayment
+- **Descrição:** Cancela timeout quando pagamento é confirmado.
+- **Evento(s) de Disparo:** PaymentConfirmed
+- **Ações Executadas:** CancelTimeout
+- **Regras de Negócio:** Evitar cancelamento após pagamento bem-sucedido
+
+### TriggerInvoiceGeneration
+- **Descrição:** Gera fatura após confirmação de pagamento.
+- **Evento(s) de Disparo:** PaymentConfirmed
+- **Ações Executadas:** CreateInvoice
+- **Regras de Negócio:** Obrigatório para cumprimento fiscal
+
+### TriggerInventoryDeduction
+- **Descrição:** Deduz estoque após geração da fatura.
+- **Evento(s) de Disparo:** InvoiceCreated
+- **Ações Executadas:** DeductInventory
+- **Regras de Negócio:** Confirmação financeira antes da dedução física
+
+### TriggerShipmentCreation
+- **Descrição:** Cria shipment após dedução de estoque.
+- **Evento(s) de Disparo:** InventoryDeducted
+- **Ações Executadas:** CreateShipment
+- **Regras de Negócio:** Produtos separados fisicamente
+
+### IntegrateWithDeliveryCompany
+- **Descrição:** Solicita coleta à transportadora.
+- **Evento(s) de Disparo:** ShipmentCreated
+- **Ações Executadas:** CallDeliveryAPI
+- **Regras de Negócio:** Anti-corruption layer para integração externa
+
+### HandleDeliveryEvents
+- **Descrição:** Processa eventos de entrega para atualizar pedido.
+- **Evento(s) de Disparo:** ShipmentCreated, DeliveryCompleted
+- **Ações Executadas:** UpdateOrderStatus
+- **Regras de Negócio:** Manter sincronização entre shipping e order
+
+### HandlePaymentFailure
+- **Descrição:** Compensa falhas de pagamento.
+- **Evento(s) de Disparo:** PaymentFailed
+- **Ações Executadas:** CancelOrder, ReleaseInventory
+- **Regras de Negócio:** Limpeza completa de recursos alocados
+
+### HandleInventoryReservationExpiry
+- **Descrição:** Processa expiração de reservas.
+- **Evento(s) de Disparo:** TimeoutExpired
+- **Ações Executadas:** ExpireInventoryReservation
+- **Regras de Negócio:** Liberação automática após timeout
+
+### HandleOrderCancellationOnReservationExpiry
+- **Descrição:** Cancela pedido quando reserva expira.
+- **Evento(s) de Disparo:** InventoryReservationExpired
+- **Ações Executadas:** CancelOrder
+- **Regras de Negócio:** Manter consistência entre inventory e order
+
+### EnsureOrderConsistency
+- **Descrição:** Garante consistência após cancelamentos.
+- **Evento(s) de Disparo:** OrderCancelled, PaymentFailed, InventoryReservationReleased
+- **Ações Executadas:** Limpeza de recursos, notificações
+- **Regras de Negócio:** Estado final consistente
+
+### ListenPaymentStatus
+- **Descrição:** Monitora status de pagamento para atualizar pedido.
+- **Evento(s) de Disparo:** PaymentConfirmed, PaymentFailed
+- **Ações Executadas:** UpdateOrderStatus
+- **Regras de Negócio:** Sincronização entre payment e order
+
+## Fluxos Principais
+
+### Happy Path - Processamento Completo
+1. **Customer** → CreateOrder → **OrderCreated**
+2. **OrderCreated** → TriggerReserveInventory → ReserveInventory → **InventoryReserved**
+3. **InventoryReserved** → HandleReservationTimeout → ScheduleTimeout → **TimeoutScheduled**
+4. **Customer** → CreatePayment → **PaymentCreated**
+5. **PaymentCreated** → IntegrateWithPaymentGateway → CallPaymentAPI → **PaymentGateway**
+6. **PaymentGateway** → ProcessPaymentCallback → **PaymentProcessed**
+7. **PaymentProcessed** → CheckPaymentResult → ConfirmPayment → **PaymentConfirmed**
+8. **PaymentConfirmed** → CancelTimeoutOnPayment → CancelTimeout → **TimeoutCancelled**
+9. **PaymentConfirmed** → TriggerInvoiceGeneration → CreateInvoice → **InvoiceCreated**
+10. **InvoiceCreated** → TriggerInventoryDeduction → DeductInventory → **InventoryDeducted**
+11. **InventoryDeducted** → TriggerShipmentCreation → CreateShipment → **ShipmentCreated**
+12. **ShipmentCreated** → IntegrateWithDeliveryCompany → CallDeliveryAPI → **DeliveryCompany**
+13. **DeliveryCompany** → ProcessDeliveryNotification → **DeliveryCompleted**
+14. **DeliveryCompleted** → HandleDeliveryEvents → UpdateOrderStatus → **OrderUpdated**
+
+### Compensation Flows
+
+#### Falha de Pagamento
+1. **PaymentProcessed** → CheckPaymentResult → RejectPayment → **PaymentFailed**
+2. **PaymentFailed** → HandlePaymentFailure → [CancelOrder, ReleaseInventory]
+3. **CancelOrder** → **OrderCancelled**
+4. **ReleaseInventory** → **InventoryReservationReleased**
+
+#### Timeout de Reserva
+1. **TimeoutExpired** → HandleInventoryReservationExpiry → ExpireInventoryReservation → **InventoryReservationExpired**
+2. **InventoryReservationExpired** → HandleOrderCancellationOnReservationExpiry → CancelOrder → **OrderCancelled**
+
+## Integrações Externas
+
+### Payment Gateway Integration
+- **Padrão:** Request-Response + Webhook Callback
+- **Fluxo:** CallPaymentAPI → Gateway Processing → ProcessPaymentCallback
+- **Timeouts:** 30 segundos para response, 5 minutos para callback
+- **Retry:** Exponential backoff até 3 tentativas
+- **Anti-Corruption Layer:** IntegrateWithPaymentGateway policy
+
+### Delivery Company Integration  
+- **Padrão:** Request-Response + Webhook Notification
+- **Fluxo:** CallDeliveryAPI → Pickup Request → ProcessDeliveryNotification
+- **Timeouts:** 60 segundos para response, notificações assíncronas
+- **Retry:** Circuit breaker com fallback para API alternativa
+- **Anti-Corruption Layer:** IntegrateWithDeliveryCompany policy
+
+## Considerações de Implementação
+
+### Patterns Aplicados
+- **Choreography Saga:** Coordenação distribuída via eventos
+- **Anti-Corruption Layer:** Integração com sistemas externos
+- **Timeout Pattern:** Gestão automática de recursos (15 minutos para reservas)
+- **Compensation Pattern:** Reversão de operações em caso de falha
+
+### Resiliência
+- **Timeouts:** 15 minutos para reservas de estoque
+- **Retries:** Exponential backoff para integrações externas
+- **Circuit Breakers:** Proteção contra falhas de sistemas externos
+- **Dead Letter Queues:** Tratamento de eventos não processáveis
+
+### Monitoramento e Métricas
+
+#### KPIs por Agregado
+- **Order:** Taxa de conversão, tempo médio de processamento, taxa de cancelamento
+- **Payment:** Taxa de aprovação, tempo médio de confirmação, taxa de timeout
+- **Inventory:** Taxa de reserva vs. dedução, tempo médio de reserva
+- **Shipping:** Tempo médio de entrega, taxa de entrega bem-sucedida
+
+#### Alertas Críticos
+- TimeoutExpired > 5% dos pedidos em 1 hora
+- PaymentFailed > 10% em 15 minutos  
+- DeliveryAPI não responsivo > 2 minutos
+- InventoryReservation > 90% da capacidade
+
+## Saga Patterns Recomendados
+
+### OrderProcessingSaga
+**Orquestra o fluxo completo de processamento do pedido conforme modelo do diagrama:**
+1. OrderCreated → ReserveInventory
+2. InventoryReserved → ScheduleTimeout + CreatePayment (iniciativa do cliente)
+3. PaymentCreated → CallPaymentAPI
+4. PaymentProcessed → ConfirmPayment/RejectPayment
+5. PaymentConfirmed → CancelTimeout + CreateInvoice
+6. InvoiceCreated → DeductInventory
+7. InventoryDeducted → CreateShipment
+8. ShipmentCreated → CallDeliveryAPI
+9. DeliveryCompleted → UpdateOrderStatus
+
+**Compensações Baseadas no Diagrama:**
+- PaymentFailed → [CancelOrder + ReleaseInventory] → EnsureOrderConsistency
+- TimeoutExpired → ExpireInventoryReservation → [CancelOrder] → EnsureOrderConsistency
+- InventoryReservationReleased → EnsureOrderConsistency
+
+**Sincronização de Status:**
+- PaymentConfirmed/PaymentFailed → ListenPaymentStatus → UpdateOrderStatus
+- ShipmentCreated/DeliveryCompleted → HandleDeliveryEvents → UpdateOrderStatus
 
