@@ -38,6 +38,8 @@ applyTo: '**'
 - **Diagramas:** Mermaid (flowcharts, sequence, class diagrams)
 - **Idioma Documentação:** Português
 - **Idioma Código:** Inglês
+- **Linguagem Código:** Python
+- **Icones:** Não utilizar ícones, apenas texto
 - **Comentários:** Português para explicações de negócio e código.
 
 ### Estrutura de Eventos
